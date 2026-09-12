@@ -360,6 +360,99 @@ function buildReferenceFromData(data, testId){
   return {id:testId, key:data.key, label:data.label, kind:'reference',
           reference:true, dialogues:[d], scenarioIds:[]};
 }
+
+/* ---------------------------------------------------------------------------
+   Diagnostics: this build scores through /api/* serverless functions. On a
+   static host (GitHub Pages) those do not exist, so everything must run through
+   browser recognition + local scoring. This panel proves which parts work.
+--------------------------------------------------------------------------- */
+function v5Diag(){
+  let box=document.getElementById('v5DiagBox');
+  if(!box){
+    box=document.createElement('div'); box.id='v5DiagBox';
+    box.style.cssText='position:fixed;right:12px;bottom:12px;max-width:380px;z-index:9999;'+
+      'background:#111;color:#eee;font:12px/1.45 ui-monospace,Menlo,Consolas,monospace;'+
+      'padding:12px 14px;border-radius:6px;box-shadow:0 6px 24px rgba(0,0,0,.4)';
+    document.body.appendChild(box);
+  }
+  return box;
+}
+function v5DiagLine(t,ok){
+  const b=v5Diag(), d=document.createElement('div');
+  d.innerHTML=(ok===true?'<span style="color:#5ad18a">PASS</span> ':
+               ok===false?'<span style="color:#ff6b5e">FAIL</span> ':
+               '<span style="color:#8aa">····</span> ')+t;
+  b.appendChild(d); return d;
+}
+async function v5SelfTest(){
+  const b=v5Diag(); b.innerHTML='<b>Self-test</b><div style="margin:6px 0 8px;color:#8aa">'+
+    'Speak a sentence when asked.</div>';
+
+  const SRok=!!SR;
+  v5DiagLine('Speech recognition API present',SRok);
+
+  let backend=false;
+  try{const r=await fetch('/api/health',{cache:'no-store'});backend=r.ok;}catch(e){}
+  v5DiagLine('Backend /api/health reachable: '+(backend?'yes':'no — static host, local mode'),null);
+
+  let micOK=false;
+  try{ await navigator.mediaDevices.getUserMedia({audio:true}); micOK=true; }catch(e){}
+  v5DiagLine('Microphone permission granted',micOK);
+
+  v5DiagLine('Reference sets loaded: '+REFERENCE_SET_REGISTRY.length,REFERENCE_SET_REGISTRY.length>0);
+
+  if(!SRok||!micOK){ v5DiagLine('Cannot continue without recognition and microphone',false); return; }
+
+  const line=v5DiagLine('Listening for 6 seconds — say something in Hindi or English…',null);
+  const heard=await new Promise(res=>{
+    let out=''; const r=new SR();
+    r.lang='hi-IN'; r.interimResults=true; r.continuous=true;
+    r.onresult=e=>{ out=''; for(let i=0;i<e.results.length;i++) out+=e.results[i][0].transcript+' ';
+      line.innerHTML='<span style="color:#8aa">····</span> heard: '+out.slice(0,90); };
+    r.onerror=e=>{ line.innerHTML='<span style="color:#ff6b5e">FAIL</span> recognition error: '+e.error; };
+    try{ r.start(); }catch(e){ line.innerHTML='<span style="color:#ff6b5e">FAIL</span> could not start: '+e.message; }
+    setTimeout(()=>{ try{r.stop()}catch(e){} res(out.trim()); },6000);
+  });
+  v5DiagLine('Transcript captured: '+(heard?('"'+heard.slice(0,60)+'"'):'nothing'),!!heard);
+
+  try{
+    const ref=REFERENCE_SET_REGISTRY[REFERENCE_SET_REGISTRY.length-1];
+    const t=ref.build(), seg=t.dialogues[0].segments[0];
+    const perfect=score(seg,seg.model);
+    const empty=score(seg,'');
+    v5DiagLine('Local scorer: perfect answer costs '+perfect.ded.toFixed(2)+
+               ', empty costs '+empty.ded.toFixed(2), perfect.ded<empty.ded);
+    if(heard){ const real=score(seg,heard);
+      v5DiagLine('Your speech scored against segment 1 of '+ref.label+': -'+real.ded.toFixed(2)+
+                 ' ('+real.matched+'/'+seg.units.length+' units)',null); }
+  }catch(e){ v5DiagLine('Local scorer threw: '+e.message,false); }
+
+  const close=document.createElement('button');
+  close.textContent='close'; close.style.cssText='margin-top:10px;font:inherit;cursor:pointer';
+  close.onclick=()=>v5Diag().remove(); v5Diag().appendChild(close);
+}
+function v5AddSelfTestButton(){
+  if(document.getElementById('v5SelfTestBtn')) return;
+  const b=document.createElement('button');
+  b.id='v5SelfTestBtn'; b.textContent='Run self-test';
+  b.style.cssText='position:fixed;right:12px;bottom:12px;z-index:9998;font:13px system-ui;'+
+    'padding:8px 12px;border-radius:6px;border:1px solid #888;background:#fff;cursor:pointer';
+  b.onclick=()=>{ b.remove(); v5SelfTest(); };
+  document.body.appendChild(b);
+}
+if(document.readyState==='loading')
+  document.addEventListener('DOMContentLoaded',v5AddSelfTestButton);
+else v5AddSelfTestButton();
+
+/* Transcript stays hidden in Exam Mode by design. Outside Exam Mode it should
+   always be visible, otherwise a working transcript looks like a broken one. */
+try{
+  if(localStorage.getItem('naatiTranscriptVisibility')===null)
+    localStorage.setItem('naatiTranscriptVisibility','visible');
+  const tv=document.getElementById('transcriptVisibility');
+  if(tv && !tv.value) tv.value='visible';
+}catch(e){}
+
 function addReferenceOption(rec){
   const ts=document.getElementById('testSelect');
   if(ts && !Array.from(ts.options).some(o=>o.value===String(rec.testId))){
