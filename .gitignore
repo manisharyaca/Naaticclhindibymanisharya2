@@ -1,0 +1,5 @@
+# Supplied © NAATI practice material — do not commit to a public repository.
+data/reference/
+audio/reference/
+*.mp3
+*.pdf

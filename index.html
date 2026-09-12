@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>NAATI CCL Hindi Exam Simulator V5</title>
-<meta name="description" content="NAATI-aligned Hindi-English CCL simulator with 100 varied tests, exam-style audio-only delivery, performance timing, automatic recording, optional dual-pass cloud transcription and semantic scoring." />
+<title>NAATI CCL Hindi Exam Simulator V5.1</title>
+<meta name="description" content="NAATI-aligned Hindi-English CCL simulator with 100 varied tests, supplied reference-practice sets, exam-style audio-only delivery, performance timing, automatic recording, dual-pass cloud transcription and semantic scoring." />
 <style>
 :root{
   --bg:#f6f8fb;--panel:#ffffff;--panel2:#f0f4f8;--text:#142033;--muted:#667085;--line:#d8dee8;
@@ -19,7 +19,7 @@ button,input,select,textarea{font:inherit} button{cursor:pointer}.app{max-width:
 <body>
 <div class="app" id="app">
   <div class="topbar">
-    <div class="brand"><div class="logo">CCL</div><div><h1>NAATI CCL Hindi Exam Simulator V5</h1><p>Hindi ↔ English · exam-aligned performance timing · dual-pass cloud transcription · AI semantic scoring · 100 varied full tests</p></div></div>
+    <div class="brand"><div class="logo">CCL</div><div><h1>NAATI CCL Hindi Exam Simulator V5.1</h1><p>Hindi ↔ English · exam-aligned performance timing · dual-pass cloud transcription · AI semantic scoring · supplied reference practice</p></div></div>
     <div class="badge">Practice simulator · not official NAATI marking</div>
   </div>
 
@@ -59,7 +59,7 @@ button,input,select,textarea{font:inherit} button{cursor:pointer}.app{max-width:
         <div><div class="small muted">Microphone recording</div><div id="capMic" class="chip">Checking…</div></div>
         <div><div class="small muted">Speech recognition</div><div id="capSTT" class="chip">Checking…</div></div>
       </div>
-      <p class="small muted">Chrome/Edge on desktop gives the best chance of speech-recognition support. If speech recognition is unavailable, record yourself and type the same answer for scoring.</p>
+      <p class="small muted">Cloud mode scores the recorded response even when browser speech recognition is unavailable. Chrome/Edge on desktop can additionally provide a live fallback transcript.</p>
       <div class="grid g2" style="margin-top:12px">
         <div class="field"><label>Preferred English (Australia) voice</label><select id="auVoiceSelect"><option>Loading voices…</option></select></div>
         <div class="field"><label>Audio source</label><select id="audioSource"><option value="voice">Best available Australian browser voice</option><option value="human">Human audio pack (optional hosted MP3 files)</option></select></div>
@@ -91,6 +91,7 @@ button,input,select,textarea{font:inherit} button{cursor:pointer}.app{max-width:
         <div class="row mobile-stack"><button class="btn primary" id="startBtn">Start / Restart</button><button class="btn" id="nextTestBtn">Next test</button></div>
       </div>
       <div class="meter" style="margin-top:14px"><span id="examProgress"></span></div>
+      <div id="referenceMaterialNotice" class="note hidden" style="margin-top:12px"><b>Provided reference dialogue:</b> this selection uses the original supplied human audio and is scored as one dialogue out of 45. It does not by itself constitute a full two-dialogue CCL mock.</div>
     </div>
 
     <div class="exam-layout" style="margin-top:14px">
@@ -104,7 +105,6 @@ button,input,select,textarea{font:inherit} button{cursor:pointer}.app{max-width:
         <div class="row mobile-stack" style="margin-top:12px">
           <button class="btn primary" id="playBtn" disabled>▶ Play source</button>
           <button class="btn" id="repeatBtn" disabled>↻ Repeat segment</button>
-          <button class="btn" id="markStartBtn" disabled>I started speaking</button>
           <span class="speak-status" id="audioStatus">Ready</span>
         </div>
         <div class="row" style="margin-top:12px"><span class="chip"><span class="live-dot" id="recDot"></span>&nbsp;<span id="recLabel">Not recording</span></span><span class="chip" id="overallTimer">Overall 00:00</span><span class="chip" id="timeWarn">Within time</span></div>
@@ -118,7 +118,7 @@ button,input,select,textarea{font:inherit} button{cursor:pointer}.app{max-width:
         <div id="recognitionHint" class="small muted"></div>
         <div class="row mobile-stack" style="margin-top:10px"><button class="btn primary" id="finishBtn" disabled>■ Finish response</button><button class="btn" id="skipBtn" disabled>Skip segment</button></div>
         <audio id="recordedAudio" controls class="hidden" style="width:100%;margin-top:10px"></audio>
-        <button class="hidden" id="recordBtn" disabled></button><button class="hidden" id="stopRecordBtn" disabled></button><button class="hidden" id="speechBtn" disabled></button><button class="hidden" id="markStartBtn" disabled></button>
+        <button class="hidden" id="recordBtn" disabled></button><button class="hidden" id="stopRecordBtn" disabled></button><button class="hidden" id="speechBtn" disabled></button>
       </div>
     </div>
 
@@ -152,11 +152,16 @@ button,input,select,textarea{font:inherit} button{cursor:pointer}.app{max-width:
   <section id="sentence" class="tabsheet">
     <div class="grid g2">
       <div class="card">
-        <div class="row space"><div><h2>Single-sentence scored practice</h2><div class="small muted">Fast EN→HI or HI→EN practice with instant scoring out of 10</div></div><span class="chip" id="sentenceNo">Sentence 1</span></div>
-        <div class="grid g3" style="margin-top:12px">
+        <div class="row space"><div><h2>Single-segment scored practice</h2><div class="small muted">Generated sentences or supplied reference segments with scoring out of 10</div></div><span class="chip" id="sentenceNo">Sentence 1</span></div>
+        <div class="grid g4" style="margin-top:12px">
+          <div class="field"><label>Practice source</label><select id="sentenceSourceSet"><option value="generated">Generated practice bank</option></select></div>
           <div class="field"><label>Direction</label><select id="sentenceDirection"><option value="EN→HI">English → Hindi</option><option value="HI→EN">Hindi → English</option></select></div>
           <div class="field"><label>Domain</label><select id="sentenceDomain"></select></div>
           <div class="field"><label>Difficulty</label><select id="sentenceDifficulty"><option value="2">Standard</option><option value="3" selected>Exam</option><option value="4">Difficult</option><option value="5">High pressure</option></select></div>
+        </div>
+        <div id="sentenceReferenceControls" class="hidden" style="margin-top:12px">
+          <div class="field"><label>Reference segment</label><select id="sentenceSegmentSelect"></select></div>
+          <div id="sentenceReferenceNotice" class="note" style="margin-top:8px">This drill uses the supplied original human source-audio segment. Its score is practice feedback, not an official NAATI mark.</div>
         </div>
         <div id="sentenceSource" class="sourcebox" style="margin-top:12px"></div>
         <div class="row mobile-stack" style="margin-top:10px"><button class="btn primary" id="playSentence">▶ Play sentence</button><button class="btn" id="nextSentence">Next</button><button class="btn" id="randomSentence">Random</button><span id="sentenceLatency" class="chip">Start —</span></div>
@@ -224,6 +229,187 @@ function altTokens(text){
 function seg(dir,role,src,model,concepts){
   return {dir,role,src,model,units:concepts.map(c=>unit(altTokens(dir==='EN→HI'?c.hi:c.en),c.label,c.critical))};
 }
+
+// ====================== PROVIDED / REFERENCE PRACTICE MATERIAL ======================
+// Reference 001 is mapped from the user-supplied NAATI Hindi CCL 2019 #2471 material.
+// Original supplied human audio is used for every source segment. English model answers
+// for Hindi-source segments follow the supplied script translation; Hindi model answers
+// for English-source segments are simulator-generated natural reference renderings.
+function refSeg(n,dir,role,src,model,concepts,modelOrigin='simulator'){
+  const x=seg(dir,role,src,model,concepts);
+  x.audio=`audio/reference/consumer_affairs_2471/segment_${String(n).padStart(2,'0')}.mp3`;
+  x.referenceId='Hindi CCL 2019 #2471';
+  x.referenceSetKey='consumer_affairs_2471';
+  x.segmentNumber=n;
+  x.isReference=true;
+  x.modelOrigin=modelOrigin;
+  return x;
+}
+function providedConsumerAffairs2471(){
+  const d={
+    title:'Reference 001 · Consumer Affairs · Restaurant birthday booking',
+    scenario:'A phone conversation between a parent and English-speaking restaurant employee Barry. The parent is booking a table for their daughter’s birthday lunch.',
+    reference:true,
+    sourceLabel:'Hindi CCL 2019 #2471 · Consumer Affairs',
+    segments:[
+      refSeg(1,'EN→HI','Barry',
+        'Thank you for calling, this is Barry speaking. How may I help you?',
+        'फ़ोन करने के लिए धन्यवाद, मैं बैरी बोल रहा हूँ। मैं आपकी क्या सहायता कर सकता हूँ?',
+        [C('thank you for calling','फ़ोन करने के लिए धन्यवाद','thanks for calling'),C('Barry speaking','बैरी बोल रहा हूँ','speaker identity',true),C('how may I help','क्या सहायता कर सकता हूँ','offer to help')]),
+      refSeg(2,'HI→EN','Parent',
+        'नमस्कार Barry, मैं कल दोपहर के खाने के लिए आठ लोगों की बुकिंग करवाना चाहती हूँ।',
+        'Good morning Barry, I would like to make a reservation for eight people for lunch tomorrow.',
+        [C('good morning','नमस्कार','greeting'),C('reservation','बुकिंग','reservation',true),C('eight people','आठ लोगों','eight people',true),C('lunch tomorrow','कल दोपहर के खाने','lunch tomorrow',true)],'supplied-script translation'),
+      refSeg(3,'EN→HI','Barry',
+        'Okay. We have a table for eight free at 12 p.m. or 1 p.m., whichever you prefer.',
+        'ठीक है। हमारे पास आठ लोगों के लिए दोपहर 12 बजे या 1 बजे टेबल खाली है, जो समय आपको पसंद हो।',
+        [C('table for eight','आठ लोगों के लिए टेबल','table for eight',true),C('12 p.m.','12 बजे','12 p.m.',true),C('1 p.m.','1 बजे','1 p.m.',true),C('whichever you prefer','जो समय आपको पसंद हो','choice')]),
+      refSeg(4,'HI→EN','Parent',
+        'दोपहर के बारह बजे बढ़िया रहेगा। इनमें तीन वयस्क और पाँच बच्चे होंगे। हमें शिशु की pram के लिए जगह चाहिए होगी।',
+        '12 p.m. would be great. There will be three adults and five children. We will need space for a baby stroller.',
+        [C('12 p.m.','बारह बजे','12 p.m.',true),C('three adults','तीन वयस्क','three adults',true),C('five children','पाँच बच्चे','five children',true),C('space for a baby stroller','pram के लिए जगह','stroller space',true)],'supplied-script translation'),
+      refSeg(5,'EN→HI','Barry',
+        'That’s fine, we have plenty of space for your stroller. We also have high chairs and child booster seats available if you need them.',
+        'ठीक है, आपके स्ट्रोलर के लिए हमारे पास पर्याप्त जगह है। ज़रूरत हो तो हमारे पास हाई चेयर और बच्चों की बूस्टर सीट भी उपलब्ध हैं।',
+        [C('space for your stroller','स्ट्रोलर के लिए पर्याप्त जगह','stroller space'),C('high chairs','हाई चेयर','high chairs'),C('child booster seats','बच्चों की बूस्टर सीट','booster seats')]),
+      refSeg(6,'HI→EN','Parent',
+        'कृपया हमें एक ऊँची कुर्सी की आवश्यकता होगी। और हाँ, मेरी बेटी को मेवा से एलर्जी है। क्या आपके मेनू में बिना मेवा के कोई व्यंजन हैं?',
+        'We would like a high chair please. Also, my daughter is allergic to nuts. Do you have any nut-free items on your menu?',
+        [C('high chair','ऊँची कुर्सी','high chair'),C('my daughter','मेरी बेटी','daughter'),C('allergic to nuts','मेवा से एलर्जी','nut allergy',true),C('nut-free items','बिना मेवा के व्यंजन','nut-free menu',true)],'supplied-script translation'),
+      refSeg(7,'EN→HI','Barry',
+        'Our children’s menu is nut-free, but I will also tell the chef she has an allergy. The chef will make certain there are no nuts in her meal.',
+        'हमारा बच्चों का मेनू नट-फ्री है, लेकिन मैं शेफ को भी बता दूँगा कि उसे एलर्जी है। शेफ यह सुनिश्चित करेंगे कि उसके खाने में मेवे न हों।',
+        [C('children’s menu is nut-free','बच्चों का मेनू नट-फ्री','nut-free children menu',true),C('tell the chef','शेफ को बता दूँगा','tell chef'),C('she has an allergy','उसे एलर्जी है','allergy',true),C('no nuts in her meal','खाने में मेवे न हों','no nuts in meal',true)]),
+      refSeg(8,'HI→EN','Parent',
+        'धन्यवाद। कल उसका जन्मदिन भी है, जिसे मनाने के लिए हम उसके लिए केक लाना चाहेंगे।',
+        'Thank you. It’s also her birthday, so we would like to get her a cake to celebrate.',
+        [C('her birthday','उसका जन्मदिन','birthday',true),C('cake','केक','cake'),C('to celebrate','मनाने के लिए','celebrate')],'supplied-script translation'),
+      refSeg(9,'EN→HI','Barry',
+        'We have chocolate cupcakes on our menu or you can bring your own cake. The bakery next door also has an excellent range of birthday cakes.',
+        'हमारे मेनू में चॉकलेट कपकेक हैं, या आप अपना केक ला सकते हैं। बगल की बेकरी में भी जन्मदिन के केकों की बहुत अच्छी किस्में हैं।',
+        [C('chocolate cupcakes','चॉकलेट कपकेक','chocolate cupcakes'),C('bring your own cake','अपना केक ला सकते हैं','own cake'),C('bakery next door','बगल की बेकरी','bakery next door',true),C('birthday cakes','जन्मदिन के केक','birthday cakes')]),
+      refSeg(10,'HI→EN','Parent',
+        'मुझे लगता है कि उसे एक विशेष केक पसंद आएगा जिसे वह अपने मित्रों के साथ बाँट सके, शायद ऐसा जिसके ऊपर स्ट्रॉबेरी लगी हों। हम देखेंगे कि बेकरी में उनके पास क्या है।',
+        'I think she would like a special cake that she can share with her friends, maybe one with strawberries on top. We’ll see what they have at the bakery.',
+        [C('special cake','विशेष केक','special cake'),C('share with her friends','मित्रों के साथ बाँट','share with friends'),C('strawberries on top','ऊपर स्ट्रॉबेरी','strawberries',true),C('see what they have at the bakery','बेकरी में उनके पास क्या है','check bakery')],'supplied-script translation'),
+      refSeg(11,'EN→HI','Barry',
+        'No problem. Just give the cake to one of our employees when you arrive and we will bring it over at the end of your meal. We can arrange candles for the cake.',
+        'कोई समस्या नहीं। पहुँचने पर केक हमारे किसी कर्मचारी को दे दीजिए और भोजन के अंत में हम उसे ले आएँगे। हम केक के लिए मोमबत्तियों की व्यवस्था कर सकते हैं।',
+        [C('give the cake to one of our employees','केक हमारे किसी कर्मचारी को दे','give cake to employee',true),C('when you arrive','पहुँचने पर','on arrival'),C('at the end of your meal','भोजन के अंत में','end of meal',true),C('arrange candles','मोमबत्तियों की व्यवस्था','candles')]),
+      refSeg(12,'HI→EN','Parent',
+        'यह तो बहुत अच्छी बात है Barry, मुझे यकीन है कि उसे अपने केक पर लगी मोमबत्तियाँ बुझाना बहुत अच्छा लगेगा। इससे उसका जन्मदिन एक बहुत ही खास दिन बन जाएगा।',
+        'That sounds great Barry, I’m sure she will enjoy blowing out the candles on her cake. It will make her birthday very special.',
+        [C('sounds great','बहुत अच्छी बात','sounds great'),C('blowing out the candles','मोमबत्तियाँ बुझाना','blow out candles',true),C('birthday very special','जन्मदिन बहुत खास','birthday special')],'supplied-script translation'),
+      refSeg(13,'EN→HI','Barry',
+        'You’re very welcome, we’ll see you and your family tomorrow at 12 p.m.',
+        'आपका स्वागत है। हम आपको और आपके परिवार को कल दोपहर 12 बजे मिलेंगे।',
+        [C('you and your family','आप और आपका परिवार','family'),C('tomorrow','कल','tomorrow',true),C('12 p.m.','12 बजे','12 p.m.',true)]),
+      refSeg(14,'HI→EN','Parent',
+        'आपकी सहायता के लिए फिर से धन्यवाद, हम उत्सुकता से इसकी प्रतीक्षा कर रहे हैं। नमस्कार!',
+        'Thank you again for your help, we’re looking forward to it. Goodbye!',
+        [C('thank you again for your help','सहायता के लिए फिर से धन्यवाद','thanks for help'),C('looking forward to it','उत्सुकता से प्रतीक्षा','looking forward'),C('goodbye','नमस्कार','goodbye')],'supplied-script translation')
+    ]
+  };
+  return {id:101,key:'consumer_affairs_2471',label:'Reference 001',kind:'reference',reference:true,dialogues:[d],scenarioIds:[]};
+}
+
+// Add future supplied sets here. Test selection and single-segment practice are
+// populated from this registry, so each new set needs one builder and one entry.
+const REFERENCE_SET_REGISTRY=[
+  {
+    testId:101,
+    key:'consumer_affairs_2471',
+    label:'Reference 001',
+    optionLabel:'Reference 001 · Consumer Affairs · original supplied human audio',
+    build:providedConsumerAffairs2471
+  }
+];
+const REFERENCE_BY_TEST_ID=new Map(REFERENCE_SET_REGISTRY.map(x=>[Number(x.testId),x]));
+
+/* ---------------------------------------------------------------------------
+   Supplied reference sets, loaded at runtime from data/reference/*.json.
+   Build them with:  python3 tools/build_reference_set.py <folder-of-pdf+mp3>
+   The scripts stay in data/ and are never embedded in this file.
+--------------------------------------------------------------------------- */
+function referenceSegmentsFromData(data){
+  const d0=data.dialogues[0]||{segments:[]};
+  return (d0.segments||[]).map(sg=>{
+    const dir = sg.direction==='EN_HI' ? 'EN\u2192HI' : 'HI\u2192EN';
+    const target = sg.model_answer||'';
+    const units = (sg.semantic_units||[]).map(u=>{
+      const alts = target ? altTokens(u.text) : (u.keys||[]);
+      return unit(alts, (u.text||'').slice(0,70), u.criticality==='critical');
+    });
+    const x = {dir, role: sg.speaker_label || (dir==='EN\u2192HI'?'English speaker':'Hindi speaker'),
+               src: sg.source_text||'', model: target, units};
+    if(sg.audio) x.audio = sg.audio;
+    x.referenceId      = data.reference || data.key;
+    x.referenceSetKey  = data.key;
+    x.segmentNumber    = sg.position;
+    x.isReference      = true;
+    x.scoreable        = !!target;           // English target supplied by the source paper
+    x.modelOrigin      = sg.modelOrigin || (target ? 'supplied-script translation' : 'model answer not supplied');
+    return x;
+  });
+}
+function buildReferenceFromData(data, testId){
+  const d0=data.dialogues[0]||{};
+  const d={ title:(data.title||data.label||'Reference')+' \u00b7 supplied',
+            scenario:d0.scenario_brief||'',
+            segments:referenceSegmentsFromData(data) };
+  return {id:testId, key:data.key, label:data.label, kind:'reference',
+          reference:true, dialogues:[d], scenarioIds:[]};
+}
+function addReferenceOption(rec){
+  const ts=document.getElementById('testSelect');
+  if(ts && !Array.from(ts.options).some(o=>o.value===String(rec.testId))){
+    let g=Array.from(ts.querySelectorAll('optgroup')).find(x=>x.label==='Provided / Reference Practice');
+    if(!g){ g=document.createElement('optgroup'); g.label='Provided / Reference Practice'; ts.appendChild(g); }
+    const o=document.createElement('option'); o.value=String(rec.testId); o.textContent=rec.optionLabel; g.appendChild(o);
+  }
+  const ss=document.getElementById('sentenceSourceSet');
+  if(ss && !Array.from(ss.options).some(o=>o.value===rec.key)){
+    const o=document.createElement('option'); o.value=rec.key; o.textContent=rec.optionLabel; ss.appendChild(o);
+  }
+}
+async function loadSuppliedReferenceSets(){
+  let manifest;
+  try{
+    const r=await fetch('data/reference/manifest.json',{cache:'no-store'});
+    if(!r.ok) return 0;
+    manifest=await r.json();
+  }catch(e){ return 0; }
+  let nextId=102, added=0;
+  for(const entry of (manifest.sets||[])){
+    if(REFERENCE_BY_KEY.has(entry.key)) continue;
+    let data;
+    try{
+      const r=await fetch(entry.file,{cache:'no-store'});
+      if(!r.ok){ console.warn('reference set missing:', entry.file); continue; }
+      data=await r.json();
+    }catch(e){ console.warn('reference set failed:', entry.file, e); continue; }
+    const testId=nextId++;
+    const scoreable=(data.dialogues[0].segments||[]).filter(x=>x.model_answer).length;
+    const total=(data.dialogues[0].segments||[]).length;
+    const rec={ testId, key:data.key, label:data.label,
+      optionLabel:`${data.label} \u00b7 supplied human audio \u00b7 ${total} segments (${scoreable} scored)`,
+      build:()=>buildReferenceFromData(data,testId) };
+    REFERENCE_SET_REGISTRY.push(rec);
+    REFERENCE_BY_TEST_ID.set(testId,rec);
+    REFERENCE_BY_KEY.set(rec.key,rec);
+    addReferenceOption(rec);
+    added++;
+  }
+  if(added) console.info(`Loaded ${added} supplied reference set(s).`);
+  return added;
+}
+if(document.readyState==='loading')
+  document.addEventListener('DOMContentLoaded',()=>loadSuppliedReferenceSets());
+else loadSuppliedReferenceSets();
+
+const REFERENCE_BY_KEY=new Map(REFERENCE_SET_REGISTRY.map(x=>[x.key,x]));
+function buildReferenceSetByKey(key){const x=REFERENCE_BY_KEY.get(key);return x?x.build():null}
+
 function ctx(s,seed){
   const date=14+(seed%14),month=pick(months,seed+2),day=pick(days,seed+3),day2=pick(days,seed+5),place=pick(places,seed*3),name=pick(names,seed),amount=pick(nums,seed*5),amount2=pick(nums,seed*7+2),pct=(2.5+(seed%8)*.55).toFixed(1),ref=`${s.domain.slice(0,2).toUpperCase()}-${1000+seed*17}`,time=`${9+(seed%7)}:${seed%2?'30':'00'} ${seed%3?'AM':'PM'}`;
   return {date,month,day,day2,place,name,amount,amount2,pct,ref,time};
@@ -395,6 +581,8 @@ const FLOW={appointment:appointmentFlow,application:applicationFlow,complaint:co
 function buildDialogue(s,seed,diff){return (FLOW[s.type]||serviceFlow)(s,seed,diff)}
 function scenarioIndex(n,salt=0){return ((n*37+salt*19+11)%SCENARIOS.length)}
 function generateTest(n,diff){
+  const reference=REFERENCE_BY_TEST_ID.get(Number(n));
+  if(reference)return reference.build();
   let a=scenarioIndex(n-1,0),b=scenarioIndex(n-1,1);
   if(SCENARIOS[a].domain===SCENARIOS[b].domain)b=(b+17)%SCENARIOS.length;
   return{id:n,dialogues:[buildDialogue(SCENARIOS[a],n*11+3,diff),buildDialogue(SCENARIOS[b],n*17+9,diff)],scenarioIds:[a,b]};
@@ -404,6 +592,9 @@ for(let i=1;i<=100;i++){
   o.value=i;o.textContent=`Test ${String(i).padStart(3,'0')} · ${t.dialogues[0].title} + ${t.dialogues[1].title}`;
   $('testSelect').appendChild(o);
 }
+const refGroup=document.createElement('optgroup');refGroup.label='Provided / Reference Practice';
+REFERENCE_SET_REGISTRY.forEach(ref=>{const o=document.createElement('option');o.value=String(ref.testId);o.textContent=ref.optionLabel;refGroup.appendChild(o)});
+$('testSelect').appendChild(refGroup);
 
 const S={running:false,testNo:1,diff:3,mode:'exam',test:null,d:0,s:0,scores:[45,45],deductions:[[],[]],repeats:[0,0],segmentRepeat:0,start:0,segStart:0,readyAt:0,speakAt:0,timer:null,media:null,sharedMedia:null,recorder:null,chunks:[],recognizer:null,auVoice:null,captureActive:false,captureStopping:false,sttFinal:'',sttLocal:'',autoPlayTimer:null};
 function current(){return S.test?.dialogues[S.d]?.segments[S.s]} function filtered(d){let a=S.test.dialogues[d].segments;if(S.mode==='enhi')return a.filter(x=>x.dir==='EN→HI');if(S.mode==='hien')return a.filter(x=>x.dir==='HI→EN');return a} function fmt(sec){sec=Math.max(0,Math.floor(sec));return String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0')}
@@ -420,12 +611,12 @@ window.addEventListener('beforeunload',()=>{if(S.sharedMedia)S.sharedMedia.getTr
 async function startTest(){clearInterval(S.timer);if(S.autoPlayTimer)clearTimeout(S.autoPlayTimer);if(!SR){alert('Automatic recognition is not available in this browser. Please use current Chrome or Edge on desktop for this version.');return}try{await enableMicOnce()}catch(e){alert('Microphone permission is required once before the test can start. Host over HTTPS and allow microphone access.');return}await stopAutoCapture(true);S.testNo=+($('testSelect').value||1);S.diff=+($('difficultySelect').value||3);S.mode=$('modeSelect').value;S.test=generateTest(S.testNo,S.diff);S.running=true;S.d=0;S.s=0;S.scores=[45,45];S.deductions=[[],[]];S.repeats=[0,0];S.start=Date.now();S.timer=setInterval(tick,250);setSegment(true);updateScores();$('feedbackPanel').classList.add('hidden')}
 function setSegment(autoPlay=true){let seg=current();if(!seg)return;let list=filtered(S.d);if(!list.includes(seg)){S.s=S.test.dialogues[S.d].segments.indexOf(list[0]);seg=current()}const idx=list.indexOf(seg);$('dialogueTitle').textContent=`Test ${String(S.testNo).padStart(3,'0')} · ${S.test.dialogues[S.d].title}`;$('scenario').textContent=S.test.dialogues[S.d].scenario;$('directionChip').textContent=seg.dir;$('roleChip').textContent=seg.role;$('sourceText').textContent=S.mode==='exam'?'Audio-only exam mode — source transcript hidden.':seg.src;$('progressText').textContent=`Dialogue ${S.d+1} · Segment ${idx+1} of ${list.length}`;$('examProgress').style.width=((S.d*list.length+idx)/(list.length*2)*100)+'%';$('repeatChip').textContent=`Repeats ${S.repeats[S.d]} / 1 free`;$('latencyChip').textContent='Start —';$('audioStatus').textContent='Preparing source…';$('responseBox').value='';$('recordedAudio').classList.add('hidden');$('feedbackPanel').classList.add('hidden');$('autoRecDot').classList.remove('on');$('autoRecLabel').textContent='Waiting for source audio';$('autoSttLabel').textContent='Recognition idle';S.segStart=Date.now();S.readyAt=0;S.speakAt=0;S.segmentRepeat=0;S.sttFinal='';S.sttLocal='';$('finishBtn').disabled=true;$('skipBtn').disabled=false;$('repeatBtn').disabled=false;$('playBtn').disabled=false;$('responseBox').disabled=false;if(S.autoPlayTimer)clearTimeout(S.autoPlayTimer);if(autoPlay&&S.running)S.autoPlayTimer=setTimeout(()=>speakSource(false),450)}
 function tick(){if(!S.running)return;const all=(Date.now()-S.start)/1000;$('overallTimer').textContent='Overall '+fmt(all);$('segmentTimer').textContent=fmt((Date.now()-S.segStart)/1000);$('timeWarn').textContent=all>=1200?'20:00+ time-risk':all>=1140?'19:00 finish soon':all>=1080?'18:00 high pressure':all>=900?'15:00 monitor time':'Within time';$('timeWarn').className='chip '+(all>=1200?'bad':all>=900?'warn':'');if(S.readyAt&&!S.speakAt){$('latencyChip').textContent='Start '+((Date.now()-S.readyAt)/1000).toFixed(1)+'s'}}
-function chime(){try{const A=window.AudioContext||window.webkitAudioContext;if(!A)return;const c=new A(),o=c.createOscillator(),g=c.createGain();o.frequency.value=880;o.connect(g);g.connect(c.destination);g.gain.value=.08;o.start();o.stop(c.currentTime+.17);o.onended=()=>c.close()}catch{}}
+function chime(){return new Promise(resolve=>{try{const A=window.AudioContext||window.webkitAudioContext;if(!A){resolve();return}const c=new A(),o=c.createOscillator(),g=c.createGain();let settled=false;const finish=()=>{if(settled)return;settled=true;try{c.close()}catch{}resolve()};o.frequency.value=880;o.connect(g);g.connect(c.destination);g.gain.value=.08;o.onended=finish;o.start();o.stop(c.currentTime+.17);setTimeout(finish,300)}catch{resolve()}})}
 function bestVoice(lang){if(!('speechSynthesis'in window))return null;const voices=speechSynthesis.getVoices();if(lang==='en-AU')return S.auVoice||voices.filter(v=>(v.lang||'').toLowerCase().startsWith('en')).sort((a,b)=>voiceScore(b)-voiceScore(a))[0]||null;return voices.filter(v=>(v.lang||'').toLowerCase().startsWith('hi')).sort((a,b)=>(b.name.toLowerCase().includes('natural')?1:0)-(a.name.toLowerCase().includes('natural')?1:0))[0]||null}
 function playText(text,lang='en-AU',rate=.94,onDone){if(!('speechSynthesis'in window)){if(onDone)onDone();return}speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang=lang;u.rate=rate;const v=bestVoice(lang);if(v)u.voice=v;u.onend=()=>{if(onDone)onDone()};u.onerror=()=>{if(onDone)onDone()};speechSynthesis.speak(u)}
 $('testVoiceBtn').onclick=()=>playText('Good morning. Please provide two recent payslips before Friday so we can continue processing your application.','en-AU',.94);
 function humanAudioPath(){return `audio/test${String(S.testNo).padStart(3,'0')}_d${S.d+1}_s${String(S.s+1).padStart(2,'0')}.mp3`}
-async function speakSource(repeat=false){const seg=current();if(!seg||!S.running)return;await stopAutoCapture(true);if(repeat){S.repeats[S.d]++;S.segmentRepeat++;$('repeatChip').textContent=`Repeats ${S.repeats[S.d]} / 1 free`}S.readyAt=0;S.speakAt=0;S.sttFinal='';S.sttLocal='';$('responseBox').value='';$('finishBtn').disabled=true;$('autoRecDot').classList.remove('on');$('autoRecLabel').textContent='Waiting for source audio';$('autoSttLabel').textContent='Recognition idle';$('audioStatus').textContent='Listening…';const done=()=>{chime();S.readyAt=Date.now();$('audioStatus').textContent='Chime — automatic capture started';setTimeout(()=>startAutoCapture(),190)};if($('audioSource').value==='human'){const a=new Audio(humanAudioPath());let settled=false;a.onended=()=>{settled=true;done()};a.onerror=()=>{if(settled)return;settled=true;$('audioStatus').textContent='Human MP3 missing — using Australian voice';playText(seg.src,seg.dir==='EN→HI'?'en-AU':'hi-IN',difficulties[S.diff].rate,done)};a.play().catch(()=>{if(!settled){settled=true;playText(seg.src,seg.dir==='EN→HI'?'en-AU':'hi-IN',difficulties[S.diff].rate,done)}})}else playText(seg.src,seg.dir==='EN→HI'?'en-AU':'hi-IN',difficulties[S.diff].rate,done)}
+async function speakSource(repeat=false){const seg=current();if(!seg||!S.running)return;await stopAutoCapture(true);if(repeat){S.repeats[S.d]++;S.segmentRepeat++;$('repeatChip').textContent=`Repeats ${S.repeats[S.d]} / 1 free`}S.readyAt=0;S.speakAt=0;S.sttFinal='';S.sttLocal='';$('responseBox').value='';$('finishBtn').disabled=true;$('autoRecDot').classList.remove('on');$('autoRecLabel').textContent='Waiting for source audio';$('autoSttLabel').textContent='Recognition idle';$('audioStatus').textContent='Listening…';const done=async()=>{await chime();S.readyAt=Date.now();$('audioStatus').textContent='Chime complete — automatic capture started';await startAutoCapture()};if($('audioSource').value==='human'){const a=new Audio(humanAudioPath());let settled=false;a.onended=()=>{settled=true;done()};a.onerror=()=>{if(settled)return;settled=true;$('audioStatus').textContent='Human MP3 missing — using Australian voice';playText(seg.src,seg.dir==='EN→HI'?'en-AU':'hi-IN',difficulties[S.diff].rate,done)};a.play().catch(()=>{if(!settled){settled=true;playText(seg.src,seg.dir==='EN→HI'?'en-AU':'hi-IN',difficulties[S.diff].rate,done)}})}else playText(seg.src,seg.dir==='EN→HI'?'en-AU':'hi-IN',difficulties[S.diff].rate,done)}
 function markStart(){if(!S.readyAt)S.readyAt=Date.now();if(!S.speakAt)S.speakAt=Date.now();$('latencyChip').textContent='Start '+Math.max(0,(S.speakAt-S.readyAt)/1000).toFixed(1)+'s'}
 async function startAutoCapture(){if(S.captureActive||!S.running)return;const seg=current();if(!seg)return;try{const shared=await enableMicOnce();S.captureStopping=false;S.captureActive=true;S.chunks=[];const tracks=shared.getAudioTracks().map(t=>t.clone());S.media=new MediaStream(tracks);S.recorder=new MediaRecorder(S.media);S.recorder.ondataavailable=e=>{if(e.data.size)S.chunks.push(e.data)};S.recorder.onstop=()=>{try{const blob=new Blob(S.chunks,{type:S.recorder.mimeType||'audio/webm'});if(blob.size){$('recordedAudio').src=URL.createObjectURL(blob);$('recordedAudio').classList.remove('hidden')}}catch{}if(S.media)S.media.getTracks().forEach(t=>t.stop())};S.recorder.start(250);$('recDot').classList.add('on');$('recLabel').textContent='Recording automatically';$('autoRecDot').classList.add('on');$('autoRecLabel').textContent='Recording automatically';$('finishBtn').disabled=false;startRecognitionLoop(seg.dir)}catch(e){S.captureActive=false;$('autoRecLabel').textContent='Microphone failed';$('autoSttLabel').textContent='Recognition unavailable';alert('Automatic capture could not start. Check microphone permission and use HTTPS.')}}
 function startRecognitionLoop(direction){if(!SR||!S.captureActive)return;const lang=direction==='EN→HI'?'hi-IN':'en-AU';let localFinal='';let intentional=false;const r=new SR();S.recognizer=r;r.lang=lang;r.interimResults=true;r.continuous=true;r.maxAlternatives=1;r.onstart=()=>{$('autoSttLabel').textContent='Recognition active'};r.onspeechstart=()=>{if(!S.speakAt)markStart()};r.onresult=e=>{let interim='';for(let i=e.resultIndex;i<e.results.length;i++){const t=e.results[i][0].transcript;if(e.results[i].isFinal)localFinal+=t+' ';else interim+=t}S.sttLocal=localFinal;$('responseBox').value=(S.sttFinal+' '+localFinal+' '+interim).replace(/\s+/g,' ').trim()};r.onerror=e=>{if(e.error!=='aborted'&&e.error!=='no-speech')$('autoSttLabel').textContent='Recognition issue: '+e.error};r.onend=()=>{S.sttFinal=(S.sttFinal+' '+localFinal).replace(/\s+/g,' ').trim();S.sttLocal='';$('responseBox').value=S.sttFinal;if(S.captureActive&&!S.captureStopping&&!intentional){$('autoSttLabel').textContent='Recognition restarting…';setTimeout(()=>startRecognitionLoop(direction),120)}else $('autoSttLabel').textContent='Recognition complete'};try{r.start()}catch(e){$('autoSttLabel').textContent='Recognition could not start'}}
@@ -463,24 +654,46 @@ showDrill();
 
 // single-sentence scored practice
 domains.forEach((d)=>{const o=document.createElement('option');o.value=d;o.textContent=d;$('sentenceDomain').appendChild(o)});
-const SS={index:0,seg:null,readyAt:0,speakAt:0,recorder:null,stream:null,chunks:[],recognizer:null,captureActive:false,captureStopping:false,sttFinal:'',sttLocal:''};
+REFERENCE_SET_REGISTRY.forEach(ref=>{const o=document.createElement('option');o.value=ref.key;o.textContent=ref.optionLabel;$('sentenceSourceSet').appendChild(o)});
+const SS={index:0,seg:null,readyAt:0,speakAt:0,recorder:null,stream:null,chunks:[],recognizer:null,captureActive:false,captureStopping:false,sttFinal:'',sttLocal:'',lastBlob:null,lastMime:'audio/webm',browserConfidence:null};
+function selectedSentenceReference(){const key=$('sentenceSourceSet').value;return key==='generated'?null:buildReferenceSetByKey(key)}
+function referenceSentenceSegments(){const ref=selectedSentenceReference(),dir=$('sentenceDirection').value;return ref?ref.dialogues.flatMap(d=>d.segments).filter(s=>s.dir===dir):[]}
+function refreshSentenceReferenceControls(){
+  const ref=selectedSentenceReference(),box=$('sentenceReferenceControls'),select=$('sentenceSegmentSelect');
+  box.classList.toggle('hidden',!ref);$('sentenceDomain').disabled=!!ref;$('sentenceDifficulty').disabled=!!ref;
+  if(!ref){select.innerHTML='';return}
+  const previous=select.value;select.innerHTML='';referenceSentenceSegments().forEach(s=>{const o=document.createElement('option');o.value=String(s.segmentNumber);o.textContent=`Segment ${s.segmentNumber} of ${ref.dialogues[0].segments.length} · ${s.role}`;select.appendChild(o)});
+  if(Array.from(select.options).some(o=>o.value===previous))select.value=previous;
+}
 function getSentence(){
   const domain=$('sentenceDomain').value||domains[0],diff=+($('sentenceDifficulty').value||3),dir=$('sentenceDirection').value;
+  const ref=selectedSentenceReference();
+  if(ref){const options=referenceSentenceSegments(),wanted=Number($('sentenceSegmentSelect').value);return options.find(s=>s.segmentNumber===wanted)||options[0]}
   const pool=SCENARIOS.filter(s=>s.domain===domain);
   const s=pool[SS.index%pool.length];
   const dialog=buildDialogue(s,1000+SS.index*7,diff);
   const options=dialog.segments.filter(x=>x.dir===dir);
   return options[SS.index%options.length];
 }
-function showSentence(){SS.seg=getSentence();$('sentenceNo').textContent=`Sentence ${SS.index+1}`;$('sentenceSource').textContent=SS.seg.src;$('sentenceResponse').value='';$('sentenceFeedback').classList.add('hidden');$('sentenceAudio').classList.add('hidden');$('sentenceLatency').textContent='Start —';$('sentenceRecDot').classList.remove('on');$('sentenceRecLabel').textContent='Waiting';$('sentenceSttLabel').textContent='Recognition idle';SS.readyAt=0;SS.speakAt=0;SS.sttFinal='';SS.sttLocal=''}
-async function playSentence(){if(!SR){alert('Automatic recognition requires current Chrome or Edge on desktop.');return}try{await enableMicOnce()}catch(e){alert('Please allow microphone access once.');return}await stopSentenceCapture(true);SS.readyAt=0;SS.speakAt=0;SS.sttFinal='';SS.sttLocal='';$('sentenceResponse').value='';$('sentenceRecLabel').textContent='Waiting for sentence';$('sentenceSttLabel').textContent='Recognition idle';const lang=SS.seg.dir==='EN→HI'?'en-AU':'hi-IN';playText(SS.seg.src,lang,+($('sentenceDifficulty').value||3)>=4?1:.94,()=>{chime();SS.readyAt=Date.now();$('sentenceLatency').textContent='Start 0.0s';setTimeout(()=>startSentenceCapture(),190)})}
+function showSentence(){SS.seg=getSentence();const ref=selectedSentenceReference();$('sentenceNo').textContent=ref?`${ref.label} · Segment ${SS.seg.segmentNumber}`:`Sentence ${SS.index+1}`;$('sentenceSource').textContent=SS.seg.src;$('sentenceResponse').value='';$('sentenceFeedback').classList.add('hidden');$('sentenceAudio').classList.add('hidden');$('sentenceLatency').textContent='Start —';$('sentenceRecDot').classList.remove('on');$('sentenceRecLabel').textContent='Waiting';$('sentenceSttLabel').textContent='Recognition idle';SS.readyAt=0;SS.speakAt=0;SS.sttFinal='';SS.sttLocal='';SS.lastBlob=null;SS.browserConfidence=null}
+function playSentenceSource(seg,onDone){
+  if(seg.audio){const a=new Audio(seg.audio);let settled=false;a.onended=()=>{if(settled)return;settled=true;onDone()};a.onerror=()=>{if(settled)return;settled=true;playText(seg.src,seg.dir==='EN→HI'?'en-AU':'hi-IN',.94,onDone)};a.play().catch(()=>{if(!settled){settled=true;playText(seg.src,seg.dir==='EN→HI'?'en-AU':'hi-IN',.94,onDone)}});return}
+  playText(seg.src,seg.dir==='EN→HI'?'en-AU':'hi-IN',+($('sentenceDifficulty').value||3)>=4?1:.94,onDone)
+}
+async function playSentence(){try{await enableMicOnce()}catch(e){alert('Please allow microphone access once.');return}await stopSentenceCapture(true);SS.readyAt=0;SS.speakAt=0;SS.sttFinal='';SS.sttLocal='';SS.lastBlob=null;SS.browserConfidence=null;$('sentenceResponse').value='';$('sentenceRecLabel').textContent='Waiting for source audio';$('sentenceSttLabel').textContent=SR?'Recognition idle':'Cloud transcription pending';playSentenceSource(SS.seg,async()=>{await chime();SS.readyAt=Date.now();$('sentenceLatency').textContent='Start 0.0s';await startSentenceCapture()})}
 function sentenceMarkStart(){if(!SS.readyAt)SS.readyAt=Date.now();if(!SS.speakAt)SS.speakAt=Date.now();$('sentenceLatency').textContent='Start '+Math.max(0,(SS.speakAt-SS.readyAt)/1000).toFixed(1)+'s'}
 function scoreSentenceResponse(){const seg=SS.seg,r=norm($('sentenceResponse').value),details=[];if(!r)return{score:0,matched:0,total:seg.units.length,details:['No usable response']};let matched=0;seg.units.forEach(u=>{const ok=u.alts.some(a=>r.includes(norm(a)));if(ok)matched++;else details.push(`Missing or distorted: ${u.label}`)});let deduction=(1-matched/Math.max(1,seg.units.length))*6.8;const exp=entityTokens(seg.model),got=entityTokens($('sentenceResponse').value);exp.forEach(e=>{if(!got.includes(e)){deduction+=1;details.push('Critical number/entity not securely transferred: '+e)}});if(/उन्होंने कहा|उसने कहा|he said|she said|the officer said|the client said/i.test($('sentenceResponse').value)){deduction+=1;details.push('Indirect speech used instead of first person')}if(SS.readyAt){const latency=((SS.speakAt||Date.now())-SS.readyAt)/1000;if(latency>5){deduction+=latency>9?1:.5;details.push('Delayed response start: '+latency.toFixed(1)+'s')}}if(r.split(' ').length<3){deduction+=1;details.push('Response too short')}const sc=Math.max(0,Math.min(10,10-deduction));if(!details.length)details.push('Meaning transferred with no material issue detected');return{score:sc,matched,total:seg.units.length,details}}
-$('playSentence').onclick=playSentence;$('nextSentence').onclick=async()=>{await stopSentenceCapture(true);SS.index++;showSentence()};$('randomSentence').onclick=async()=>{await stopSentenceCapture(true);SS.index=Math.floor(Math.random()*1000);showSentence()};['sentenceDirection','sentenceDomain','sentenceDifficulty'].forEach(id=>$(id).onchange=async()=>{await stopSentenceCapture(true);showSentence()});
-async function startSentenceCapture(){if(SS.captureActive)return;try{const shared=await enableMicOnce();SS.captureActive=true;SS.captureStopping=false;SS.chunks=[];const tracks=shared.getAudioTracks().map(t=>t.clone());SS.stream=new MediaStream(tracks);SS.recorder=new MediaRecorder(SS.stream);SS.recorder.ondataavailable=e=>{if(e.data.size)SS.chunks.push(e.data)};SS.recorder.onstop=()=>{try{const blob=new Blob(SS.chunks,{type:SS.recorder.mimeType||'audio/webm'});if(blob.size){$('sentenceAudio').src=URL.createObjectURL(blob);$('sentenceAudio').classList.remove('hidden')}}catch{}if(SS.stream)SS.stream.getTracks().forEach(t=>t.stop())};SS.recorder.start(250);$('sentenceRecDot').classList.add('on');$('sentenceRecLabel').textContent='Recording automatically';$('sentenceSttLabel').textContent='Recognition starting';startSentenceRecognition()}catch(e){SS.captureActive=false;$('sentenceRecLabel').textContent='Microphone failed';alert('Automatic sentence capture could not start.')}}
-function startSentenceRecognition(){if(!SR||!SS.captureActive)return;const lang=SS.seg.dir==='EN→HI'?'hi-IN':'en-AU';let localFinal='';const r=new SR();SS.recognizer=r;r.lang=lang;r.interimResults=true;r.continuous=true;r.maxAlternatives=1;r.onstart=()=>{$('sentenceSttLabel').textContent='Recognition active'};r.onspeechstart=()=>{if(!SS.speakAt)sentenceMarkStart()};r.onresult=e=>{let interim='';for(let i=e.resultIndex;i<e.results.length;i++){const t=e.results[i][0].transcript;if(e.results[i].isFinal)localFinal+=t+' ';else interim+=t}SS.sttLocal=localFinal;$('sentenceResponse').value=(SS.sttFinal+' '+localFinal+' '+interim).replace(/\s+/g,' ').trim()};r.onerror=e=>{if(e.error!=='aborted'&&e.error!=='no-speech')$('sentenceSttLabel').textContent='Recognition issue: '+e.error};r.onend=()=>{SS.sttFinal=(SS.sttFinal+' '+localFinal).replace(/\s+/g,' ').trim();SS.sttLocal='';$('sentenceResponse').value=SS.sttFinal;if(SS.captureActive&&!SS.captureStopping){$('sentenceSttLabel').textContent='Recognition restarting…';setTimeout(startSentenceRecognition,120)}else $('sentenceSttLabel').textContent='Recognition complete'};try{r.start()}catch(e){$('sentenceSttLabel').textContent='Recognition could not start'}}
-async function stopSentenceCapture(discard=false){if(!SS.captureActive&&!SS.recorder&&!SS.recognizer){if(discard){$('sentenceResponse').value='';SS.sttFinal='';SS.sttLocal=''}return}SS.captureStopping=true;SS.captureActive=false;try{if(SS.recognizer)SS.recognizer.stop()}catch{}SS.recognizer=null;await new Promise(r=>setTimeout(r,500));try{if(SS.recorder&&SS.recorder.state!=='inactive')SS.recorder.stop()}catch{}SS.recorder=null;$('sentenceRecDot').classList.remove('on');$('sentenceRecLabel').textContent=discard?'Waiting':'Recorded';$('sentenceSttLabel').textContent=discard?'Recognition idle':'Recognition complete';if(discard){$('sentenceResponse').value='';SS.sttFinal='';SS.sttLocal='';$('sentenceAudio').classList.add('hidden')}SS.captureStopping=false}
-$('scoreSentence').onclick=async()=>{await stopSentenceCapture(false);if(!SS.speakAt&&SS.readyAt)SS.speakAt=Date.now();const r=scoreSentenceResponse(),cls=r.score>=8?'success':r.score>=6.5?'note':'danger';const p=$('sentenceFeedback');p.classList.remove('hidden');p.innerHTML=`<div class="${cls}"><b>${r.score.toFixed(1)}/10</b> · semantic units ${r.matched}/${r.total}</div><div class="feedback" style="margin-top:10px"><ul>${r.details.map(x=>`<li>${x}</li>`).join('')}</ul><div style="margin-top:8px"><b>Automatic transcript:</b> ${$('sentenceResponse').value||'—'}</div><div style="margin-top:8px"><b>Natural model:</b> ${SS.seg.model}</div></div>`};
+$('playSentence').onclick=playSentence;
+$('nextSentence').onclick=async()=>{await stopSentenceCapture(true);const options=referenceSentenceSegments();if(options.length){const pos=Math.max(0,options.findIndex(s=>String(s.segmentNumber)===$('sentenceSegmentSelect').value));$('sentenceSegmentSelect').value=String(options[(pos+1)%options.length].segmentNumber)}else SS.index++;showSentence()};
+$('randomSentence').onclick=async()=>{await stopSentenceCapture(true);const options=referenceSentenceSegments();if(options.length)$('sentenceSegmentSelect').value=String(options[Math.floor(Math.random()*options.length)].segmentNumber);else SS.index=Math.floor(Math.random()*1000);showSentence()};
+$('sentenceSourceSet').onchange=async()=>{await stopSentenceCapture(true);SS.index=0;refreshSentenceReferenceControls();showSentence()};
+$('sentenceDirection').onchange=async()=>{await stopSentenceCapture(true);SS.index=0;refreshSentenceReferenceControls();showSentence()};
+['sentenceDomain','sentenceDifficulty'].forEach(id=>$(id).onchange=async()=>{await stopSentenceCapture(true);SS.index=0;showSentence()});
+$('sentenceSegmentSelect').onchange=async()=>{await stopSentenceCapture(true);showSentence()};
+async function startSentenceCapture(){if(SS.captureActive)return;try{const shared=await enableMicOnce();SS.captureActive=true;SS.captureStopping=false;SS.chunks=[];SS.lastBlob=null;const tracks=shared.getAudioTracks().map(t=>t.clone());SS.stream=new MediaStream(tracks);SS.recorder=new MediaRecorder(SS.stream);SS.recorder.ondataavailable=e=>{if(e.data.size)SS.chunks.push(e.data)};SS.recorder.onstop=()=>{try{const blob=new Blob(SS.chunks,{type:SS.recorder.mimeType||'audio/webm'});SS.lastBlob=blob;SS.lastMime=blob.type||'audio/webm';if(blob.size){$('sentenceAudio').src=URL.createObjectURL(blob);$('sentenceAudio').classList.remove('hidden')}}catch{}if(SS.stream)SS.stream.getTracks().forEach(t=>t.stop())};SS.recorder.start(250);$('sentenceRecDot').classList.add('on');$('sentenceRecLabel').textContent='Recording automatically';$('sentenceSttLabel').textContent=SR?'Recognition starting':'Cloud transcription after response';startSentenceRecognition()}catch(e){SS.captureActive=false;$('sentenceRecLabel').textContent='Microphone failed';alert('Automatic sentence capture could not start.')}}
+function startSentenceRecognition(){if(!SR||!SS.captureActive)return;const lang=SS.seg.dir==='EN→HI'?'hi-IN':'en-AU';let localFinal='',confSum=0,confN=0;const r=new SR();SS.recognizer=r;r.lang=lang;r.interimResults=true;r.continuous=true;r.maxAlternatives=2;r.onstart=()=>{$('sentenceSttLabel').textContent='Recognition active'};r.onspeechstart=()=>{if(!SS.speakAt)sentenceMarkStart()};r.onresult=e=>{let interim='';for(let i=e.resultIndex;i<e.results.length;i++){const best=e.results[i][0],t=best.transcript;if(Number.isFinite(best.confidence)&&best.confidence>0){confSum+=best.confidence;confN++}if(e.results[i].isFinal)localFinal+=t+' ';else interim+=t}SS.sttLocal=localFinal;SS.browserConfidence=confN?confSum/confN:SS.browserConfidence;$('sentenceResponse').value=(SS.sttFinal+' '+localFinal+' '+interim).replace(/\s+/g,' ').trim()};r.onerror=e=>{if(e.error!=='aborted'&&e.error!=='no-speech')$('sentenceSttLabel').textContent='Recognition issue: '+e.error};r.onend=()=>{SS.sttFinal=(SS.sttFinal+' '+localFinal).replace(/\s+/g,' ').trim();SS.sttLocal='';SS.browserConfidence=confN?confSum/confN:SS.browserConfidence;$('sentenceResponse').value=SS.sttFinal;if(SS.captureActive&&!SS.captureStopping){$('sentenceSttLabel').textContent='Recognition restarting…';setTimeout(startSentenceRecognition,120)}else $('sentenceSttLabel').textContent='Recognition complete'};try{r.start()}catch(e){$('sentenceSttLabel').textContent='Browser recognition unavailable'}}
+async function stopSentenceCapture(discard=false){if(!SS.captureActive&&!SS.recorder&&!SS.recognizer){if(discard){$('sentenceResponse').value='';SS.sttFinal='';SS.sttLocal='';SS.lastBlob=null}return}SS.captureStopping=true;SS.captureActive=false;try{if(SS.recognizer)SS.recognizer.stop()}catch{}SS.recognizer=null;await new Promise(r=>setTimeout(r,250));const rec=SS.recorder;if(rec&&rec.state!=='inactive'){await new Promise(resolve=>{const prev=rec.onstop;rec.onstop=()=>{if(prev)try{prev()}catch{}resolve()};try{rec.stop()}catch{resolve()}})}SS.recorder=null;$('sentenceRecDot').classList.remove('on');$('sentenceRecLabel').textContent=discard?'Waiting':'Recorded';$('sentenceSttLabel').textContent=discard?'Recognition idle':'Recognition complete';if(discard){$('sentenceResponse').value='';SS.sttFinal='';SS.sttLocal='';SS.lastBlob=null;$('sentenceAudio').classList.add('hidden')}SS.captureStopping=false}
+function renderSentenceScore(r,transcript,engine){const cls=r.score>=8?'success':r.score>=6.5?'note':'danger',p=$('sentenceFeedback');p.classList.remove('hidden');p.innerHTML=`<div class="${cls}"><b>${r.score.toFixed(1)}/10</b> · semantic units ${r.matched}/${r.total} · ${engine}</div><div class="feedback" style="margin-top:10px"><ul>${r.details.map(x=>`<li>${x}</li>`).join('')}</ul><div style="margin-top:8px"><b>Automatic transcript:</b> ${transcript||'—'}</div><div style="margin-top:8px"><b>Natural model:</b> ${SS.seg.model}</div></div>`}
 $('sentenceModelBtn').onclick=()=>{const p=$('sentenceFeedback');p.classList.remove('hidden');p.innerHTML=`<div class="feedback"><b>Natural model:</b> ${SS.seg.model}</div>`};
 
 // ====================== V5 EXAM-ALIGNED CLOUD ENGINE ======================
@@ -519,12 +732,19 @@ const oldStartTest=startTest;
 startTest=async function(){
   clearInterval(S.timer);if(S.autoPlayTimer)clearTimeout(S.autoPlayTimer);
   try{await enableMicOnce()}catch(e){alert('Microphone permission is required once before the test can start. Host over HTTPS and allow microphone access.');return}
-  await stopAutoCapture(true);S.testNo=+($('testSelect').value||1);S.diff=+($('difficultySelect').value||3);S.mode=$('modeSelect').value;S.test=generateTest(S.testNo,S.diff);S.running=true;S.d=0;S.s=0;S.scores=[45,45];S.deductions=[[],[]];S.repeats=[0,0];S.start=Date.now();V5.perfAccum=0;V5.perfPhaseStart=0;V5.perfPhase=null;V5.lastBlob=null;V5.lastBrowserTranscript='';V5.lastBrowserConfidence=null;S.timer=setInterval(tick,250);setSegment(true);updateScores();$('feedbackPanel').classList.add('hidden')
+  await stopAutoCapture(true);S.testNo=+($('testSelect').value||1);S.diff=+($('difficultySelect').value||3);S.mode=$('modeSelect').value;S.test=generateTest(S.testNo,S.diff);S.running=true;S.d=0;S.s=0;S.scores=S.test.dialogues.map(()=>45);S.deductions=S.test.dialogues.map(()=>[]);S.repeats=S.test.dialogues.map(()=>0);S.start=Date.now();V5.perfAccum=0;V5.perfPhaseStart=0;V5.perfPhase=null;V5.lastBlob=null;V5.lastBrowserTranscript='';V5.lastBrowserConfidence=null;S.timer=setInterval(tick,250);setSegment(true);updateScores();$('feedbackPanel').classList.add('hidden')
 };
 
 const oldSetSegment=setSegment;
 setSegment=function(autoPlay=true){
   oldSetSegment(autoPlay);
+  const lists=S.test.dialogues.map((_,i)=>filtered(i));
+  const doneBefore=lists.slice(0,S.d).reduce((a,l)=>a+l.length,0);
+  const curList=lists[S.d]||[];const curIdx=Math.max(0,curList.indexOf(current()));
+  const totalSegs=Math.max(1,lists.reduce((a,l)=>a+l.length,0));
+  $('examProgress').style.width=((doneBefore+curIdx)/totalSegs*100)+'%';
+  $('dialogueTitle').textContent=`${S.test.reference?(S.test.label||'Reference'):'Test '+String(S.testNo).padStart(3,'0')} · ${S.test.dialogues[S.d].title}`;
+  $('referenceMaterialNotice')?.classList.toggle('hidden',!S.test.reference);
   const exam=S.mode==='exam';
   const wrap=$('examTranscriptWrap'),msg=$('examNoTranscript');
   if(wrap)wrap.classList.toggle('hidden',exam&&$('transcriptVisibility')?.value==='hidden');
@@ -538,6 +758,13 @@ async function v5CloudTTS(text,lang){
   const blob=await r.blob(),url=URL.createObjectURL(blob);V5.audioCache.set(key,url);return url;
 }
 async function v5PlaySourceAudio(seg,onDone){
+  if(seg.audio){
+    const a=new Audio(seg.audio);let finished=false;
+    a.onended=()=>{if(finished)return;finished=true;onDone()};
+    a.onerror=()=>{if(finished)return;finished=true;v5PlayFallback(seg,onDone)};
+    try{$('audioStatus').textContent='Playing original supplied human audio…';await a.play()}catch(e){v5PlayFallback(seg,onDone)}
+    return;
+  }
   const source=v5SelectedAudio();
   if(source==='human'){
     const a=new Audio(humanAudioPath());let done=false;a.onended=()=>{if(done)return;done=true;onDone()};a.onerror=()=>{if(done)return;done=true;v5PlayFallback(seg,onDone)};try{await a.play()}catch{v5PlayFallback(seg,onDone)};return;
@@ -554,7 +781,7 @@ speakSource=async function(repeat=false){
   if(repeat){S.repeats[S.d]++;S.segmentRepeat++;$('repeatChip').textContent=`Repeats ${S.repeats[S.d]} / 1 free`}
   S.readyAt=0;S.speakAt=0;S.sttFinal='';S.sttLocal='';V5.lastBrowserTranscript='';V5.lastBrowserConfidence=null;$('responseBox').value='';$('finishBtn').disabled=true;$('autoRecDot').classList.remove('on');$('autoRecLabel').textContent='Waiting for source audio';$('autoSttLabel').textContent='Recognition idle';$('audioStatus').textContent='Listening…';
   v5BeginPerf('source');
-  const done=()=>{v5EndPerf();chime();S.readyAt=Date.now();$('audioStatus').textContent='Chime — recording started automatically';setTimeout(()=>startAutoCapture(),150)};
+  const done=async()=>{v5EndPerf();await chime();S.readyAt=Date.now();$('audioStatus').textContent='Chime complete — recording started automatically';await startAutoCapture()};
   await v5PlaySourceAudio(seg,done);
 };
 
@@ -588,18 +815,19 @@ stopAutoCapture=async function(discard=false){
 function v5LocalScore(seg,response){
   const base=score(seg,response);const max=45/Math.max(1,S.test.dialogues[S.d].segments.length);base.ded=Math.min(max,base.ded);return base;
 }
-async function v5Transcribe(seg){
-  if(!V5.lastBlob)throw new Error('No audio recording available');
-  const fd=new FormData();fd.append('audio',V5.lastBlob,'response.webm');fd.append('language',seg.dir==='EN→HI'?'hi':'en');fd.append('browserTranscript',V5.lastBrowserTranscript||'');
+async function v5TranscribeBlob(blob,dir,browserTranscript=''){
+  if(!blob)throw new Error('No audio recording available');
+  const fd=new FormData();fd.append('audio',blob,'response.webm');fd.append('language',dir==='EN→HI'?'hi':'en');fd.append('browserTranscript',browserTranscript||'');
   const r=await fetch('/api/transcribe',{method:'POST',body:fd});if(!r.ok)throw new Error('Cloud transcription failed');return await r.json();
 }
+async function v5Transcribe(seg){return v5TranscribeBlob(V5.lastBlob,seg.dir,V5.lastBrowserTranscript||'')}
 async function v5CloudScore(seg,tr){
-  const payload={source:seg.src,modelAnswer:seg.model,direction:seg.dir,semanticUnits:seg.units,targetLanguage:seg.dir==='EN→HI'?'Hindi':'English',primaryTranscript:tr.primary||'',secondaryTranscript:tr.secondary||'',browserTranscript:V5.lastBrowserTranscript||'',transcriptAgreement:tr.agreement??null,browserConfidence:V5.lastBrowserConfidence,responseStartSeconds:S.readyAt?Math.max(0,((S.speakAt||Date.now())-S.readyAt)/1000):null,repeatsUsed:S.repeats[S.d],repeatOnThisSegment:!!S.segmentRepeat,responseDurationSeconds:S.readyAt?Math.max(0,(Date.now()-(S.speakAt||S.readyAt))/1000):null,segmentMaxDeduction:45/Math.max(1,S.test.dialogues[S.d].segments.length)};
+  const payload={source:seg.src,modelAnswer:seg.model,direction:seg.dir,semanticUnits:seg.units,targetLanguage:seg.dir==='EN→HI'?'Hindi':'English',primaryTranscript:tr.primary||'',secondaryTranscript:tr.secondary||'',browserTranscript:V5.lastBrowserTranscript||'',transcriptAgreement:tr.agreement??null,browserConfidence:V5.lastBrowserConfidence,responseStartSeconds:S.readyAt&&S.speakAt?Math.max(0,(S.speakAt-S.readyAt)/1000):null,repeatsUsed:S.repeats[S.d],repeatOnThisSegment:!!S.segmentRepeat,responseDurationSeconds:S.readyAt?Math.max(0,(Date.now()-S.readyAt)/1000):null,segmentMaxDeduction:45/Math.max(1,S.test.dialogues[S.d].segments.length)};
   const r=await fetch('/api/score',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});if(!r.ok)throw new Error('Cloud scoring failed');return await r.json();
 }
 
 finish=async function(skip=false){
-  const seg=current();if(!seg||V5.scoringBusy)return;V5.scoringBusy=true;$('finishBtn').disabled=true;$('repeatBtn').disabled=true;$('autoSttLabel').textContent='Processing response…';await stopAutoCapture(false);if(!S.speakAt&&S.readyAt)S.speakAt=Date.now();
+  const seg=current();if(!seg||V5.scoringBusy)return;V5.scoringBusy=true;$('finishBtn').disabled=true;$('repeatBtn').disabled=true;$('autoSttLabel').textContent='Processing response…';await stopAutoCapture(false);
   let res,transcript=V5.lastBrowserTranscript||$('responseBox').value||'';
   if(skip){const max=45/Math.max(1,S.test.dialogues[S.d].segments.length);res={ded:max,details:['Major omission: segment skipped'],cats:['Omission'],matched:0,total:seg.units.length,confidence:'high'}}
   else if(v5SelectedEngine()==='cloud'&&V5.backend){
@@ -618,20 +846,44 @@ showFeedback=function(res,seg){
 };
 
 const oldComplete=complete;
-complete=async function(){v5EndPerf();await stopAutoCapture(false);S.running=false;clearInterval(S.timer);$('examProgress').style.width='100%';['playBtn','repeatBtn','finishBtn','skipBtn','responseBox'].forEach(id=>$(id).disabled=true);const d1=S.scores[0],d2=S.scores[1],total=d1+d2,pass=total>=63&&d1>=29&&d2>=29,mins=v5PerfMs()/60000;const errors={};[...S.deductions[0],...S.deductions[1]].forEach(x=>x.cats.forEach(c=>errors[c]=(errors[c]||0)+1));const h=getHistory();h.unshift({date:new Date().toISOString(),test:S.testNo,d1,d2,total,pass,mins,errors,engine:v5SelectedEngine()});saveHistory(h.slice(0,50));renderHistory();const worst=[...S.deductions[0],...S.deductions[1]].sort((a,b)=>b.ded-a.ded).slice(0,6);const p=$('feedbackPanel');p.classList.remove('hidden');p.innerHTML=`<h2>${pass?'PASS':'FAIL'} · ${total.toFixed(1)}/90</h2><div class="${pass?'success':'danger'}">Dialogue 1 ${d1.toFixed(1)}/45 · Dialogue 2 ${d2.toFixed(1)}/45 · performance ${mins.toFixed(1)} min · ${v5SelectedEngine()} scoring</div><h3 style="margin-top:14px">Highest-impact deductions</h3>${worst.map(x=>`<details class="feedback" style="margin:8px 0"><summary><b>${x.dir}</b> · -${x.ded.toFixed(2)} · ${x.details[0]}</summary><div class="small" style="margin-top:8px"><b>Source:</b> ${x.source}<br><b>Your response:</b> ${x.response||'—'}<br><b>Model:</b> ${x.model}<br><b>Scoring confidence:</b> ${x.confidence||'—'}</div></details>`).join('')}`
+complete=async function(){
+  v5EndPerf();await stopAutoCapture(false);S.running=false;clearInterval(S.timer);$('examProgress').style.width='100%';
+  ['playBtn','repeatBtn','finishBtn','skipBtn','responseBox'].forEach(id=>$(id).disabled=true);
+  const count=S.test.dialogues.length,d1=S.scores[0],d2=count>1?S.scores[1]:null,total=count>1?d1+d2:d1;
+  const pass=count>1?(total>=63&&d1>=29&&d2>=29):(d1>=29),mins=v5PerfMs()/60000;
+  const allDed=S.deductions.flat();const errors={};allDed.forEach(x=>(x.cats||[]).forEach(c=>errors[c]=(errors[c]||0)+1));
+  const h=getHistory();h.unshift({date:new Date().toISOString(),test:S.testNo,label:S.test.label||null,reference:!!S.test.reference,full:count>1,d1,d2,total,pass,mins,errors,engine:v5SelectedEngine()});saveHistory(h.slice(0,50));renderHistory();
+  const worst=[...allDed].sort((a,b)=>b.ded-a.ded).slice(0,6);const p=$('feedbackPanel');p.classList.remove('hidden');
+  const verdict=count>1?(pass?'PASS':'FAIL'):(pass?'DIALOGUE PASS':'DIALOGUE BELOW 29');const denom=count>1?90:45;
+  const scoreline=count>1?`Dialogue 1 ${d1.toFixed(1)}/45 · Dialogue 2 ${d2.toFixed(1)}/45`:`Reference dialogue ${d1.toFixed(1)}/45 · full CCL pass/fail requires two dialogues`;
+  p.innerHTML=`<h2>${verdict} · ${total.toFixed(1)}/${denom}</h2><div class="${pass?'success':'danger'}">${scoreline} · performance ${mins.toFixed(1)} min · ${v5SelectedEngine()} scoring</div><h3 style="margin-top:14px">Highest-impact deductions</h3>${worst.map(x=>`<details class="feedback" style="margin:8px 0"><summary><b>${x.dir}</b> · -${x.ded.toFixed(2)} · ${x.details[0]}</summary><div class="small" style="margin-top:8px"><b>Source:</b> ${x.source}<br><b>Your response:</b> ${x.response||'—'}<br><b>Model:</b> ${x.model}<br><b>Scoring confidence:</b> ${x.confidence||'—'}</div></details>`).join('')}`;
 };
 
-// Sentence practice: use cloud dual transcription + semantic score when available.
-const oldScoreSentenceClick=$('scoreSentence').onclick;
+// Variable-dialogue navigation and score display (supports supplied single-dialogue materials).
+advance=function(){const list=filtered(S.d),seg=current(),idx=list.indexOf(seg);if(idx<list.length-1){S.s=S.test.dialogues[S.d].segments.indexOf(list[idx+1]);setSegment();return}if(S.d<S.test.dialogues.length-1){S.d++;const l=filtered(S.d);S.s=S.test.dialogues[S.d].segments.indexOf(l[0]);setSegment();return}complete()};
+updateScores=function(){const count=S.test?.dialogues?.length||2;const d1=S.scores[0]??45,d2=count>1?(S.scores[1]??45):null;$('d1Score').textContent=d1.toFixed(1);$('d2Score').textContent=d2===null?'—':d2.toFixed(1);$('totalScore').textContent=(d2===null?d1:d1+d2).toFixed(1)};
+renderHistory=function(){const h=getHistory();$('historyRows').innerHTML=h.length?h.map(x=>`<tr><td>${new Date(x.date).toLocaleDateString()}</td><td>${x.reference?(x.label||'Reference'):String(x.test).padStart(3,'0')}</td><td>${Number(x.d1).toFixed(1)}</td><td>${x.d2==null?'—':Number(x.d2).toFixed(1)}</td><td><b>${Number(x.total).toFixed(1)}${x.full===false?'/45':'/90'}</b></td><td>${Number(x.mins).toFixed(1)}m</td><td><span class="chip ${x.pass?'good':'bad'}">${x.full===false?(x.pass?'DIALOGUE PASS':'<29'):(x.pass?'PASS':'FAIL')}</span></td></tr>`).join(''):'<tr><td colspan="7" class="muted">No completed tests yet.</td></tr>';const full=h.filter(x=>x.full!==false&&!x.reference).slice(0,5);if(full.length>=5){const avg=full.reduce((a,x)=>a+Number(x.total),0)/5,low=Math.min(...full.map(x=>Math.min(Number(x.d1),Number(x.d2))));let lab='RED';if(avg>=68&&low>=32)lab='GREEN';else if(avg>=63&&low>=29)lab='AMBER';$('avg5').textContent=avg.toFixed(1);$('lowDialogue').textContent=low.toFixed(1);$('readyLabel').textContent=lab;$('dashReady').textContent=lab;$('dashReadySub').textContent=`Avg ${avg.toFixed(1)} · low ${low.toFixed(1)}`}else{$('avg5').textContent='—';$('lowDialogue').textContent='—';$('readyLabel').textContent=`${full.length}/5`;$('dashReady').textContent=`${full.length}/5`;$('dashReadySub').textContent='Complete 5 full tests'}const errs={};h.slice(0,10).forEach(x=>Object.entries(x.errors||{}).forEach(([k,v])=>errs[k]=(errs[k]||0)+v));const arr=Object.entries(errs).sort((a,b)=>b[1]-a[1]);$('errorProfile').innerHTML=arr.length?arr.map(([k,v])=>`<div class="barrow"><span>${k}</span><div class="mini-bar"><i style="width:${Math.min(100,v*8)}%"></i></div><b>${v}</b></div>`).join(''):'Complete tests to populate error categories.'};
+
+// Sentence practice uses the same recorded-audio, dual-transcription and semantic
+// scoring path as the full simulator. Local deterministic scoring remains a fallback.
 $('scoreSentence').onclick=async()=>{
-  await stopSentenceCapture(false);if(!SS.speakAt&&SS.readyAt)SS.speakAt=Date.now();
-  // Reuse browser transcript locally; sentence mode remains instant. Cloud full-audio pipeline is reserved for full-test segments.
-  const r=scoreSentenceResponse(),cls=r.score>=8?'success':r.score>=6.5?'note':'danger';const p=$('sentenceFeedback');p.classList.remove('hidden');p.innerHTML=`<div class="${cls}"><b>${r.score.toFixed(1)}/10</b> · semantic units ${r.matched}/${r.total}</div><div class="feedback" style="margin-top:10px"><ul>${r.details.map(x=>`<li>${x}</li>`).join('')}</ul><div style="margin-top:8px"><b>Automatic transcript:</b> ${$('sentenceResponse').value||'—'}</div><div style="margin-top:8px"><b>Natural model:</b> ${SS.seg.model}</div></div>`
+  $('scoreSentence').disabled=true;$('sentenceSttLabel').textContent='Processing response…';await stopSentenceCapture(false);
+  let transcript=$('sentenceResponse').value||SS.sttFinal||'',result,engine='local fallback';
+  if(v5SelectedEngine()==='cloud'&&V5.backend&&SS.lastBlob){
+    try{
+      const tr=await v5TranscribeBlob(SS.lastBlob,SS.seg.dir,transcript);transcript=tr.primary||tr.secondary||transcript;$('sentenceResponse').value=transcript;$('sentenceSttLabel').textContent='Dual transcription complete · semantic scoring…';
+      const payload={source:SS.seg.src,modelAnswer:SS.seg.model,direction:SS.seg.dir,semanticUnits:SS.seg.units,targetLanguage:SS.seg.dir==='EN→HI'?'Hindi':'English',primaryTranscript:tr.primary||'',secondaryTranscript:tr.secondary||'',browserTranscript:SS.sttFinal||'',transcriptAgreement:tr.agreement??null,browserConfidence:SS.browserConfidence,responseStartSeconds:SS.readyAt&&SS.speakAt?Math.max(0,(SS.speakAt-SS.readyAt)/1000):null,repeatsUsed:0,repeatOnThisSegment:false,responseDurationSeconds:SS.readyAt?Math.max(0,(Date.now()-SS.readyAt)/1000):null,segmentMaxDeduction:10};
+      const response=await fetch('/api/score',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});if(!response.ok)throw new Error('Cloud scoring failed');const ai=await response.json();result={score:Math.max(0,Math.min(10,10-(Number(ai.deduction)||0))),matched:Number.isFinite(ai.matchedUnits)?ai.matchedUnits:0,total:SS.seg.units.length,details:Array.isArray(ai.details)?ai.details:[ai.summary||'AI assessment completed']};engine=`cloud AI · confidence ${ai.confidence||'medium'}`;
+    }catch(e){result=scoreSentenceResponse();result.details.unshift('Cloud scoring unavailable — local fallback used.')}
+  }else result=scoreSentenceResponse();
+  renderSentenceScore(result,transcript,engine);$('sentenceSttLabel').textContent='Scoring complete';$('scoreSentence').disabled=false;
 };
 
 // Cloud engine can operate without browser SpeechRecognition; do not block start.
 $('recognitionHint').textContent='Cloud mode scores the recorded audio after each response and does not depend on browser transcription. Browser recognition is used only as a live fallback in compatible browsers.';
-showSentence();renderHistory();
+$('startBtn').onclick=()=>startTest();
+$('nextTestBtn').onclick=async()=>{const v=Number($('testSelect').value||1);$('testSelect').value=String(v>=100?1:v+1);await startTest()};
+refreshSentenceReferenceControls();showSentence();renderHistory();
 })();
 </script>
 </body>
